@@ -1,3 +1,3 @@
 package com.indilago.scalamart.exception
 
-class ValidationFailed(message: String) extends RuntimeException(message)
+class ValidationFailed(message: String) extends BadInput(message)

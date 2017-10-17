@@ -28,7 +28,7 @@ class FakeProductDao(protected val clock: Clock) extends ProductDao {
   override def update(product: BasicProduct)(implicit ec: ExecutionContext) = Future {
     val existing = records.find(_.id == product.id)
       .getOrElse(throw new RuntimeException("Cannot update a nonexistent product"))
-    records.updated(records.indexOf(existing), product)
+    records = records.updated(records.indexOf(existing), product)
     product
   }
 }

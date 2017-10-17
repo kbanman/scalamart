@@ -1,8 +1,8 @@
-package com.indilago.scalamart.testutil
+package com.indilago.scalamart.product
 
 import java.time.Instant
 
-import com.indilago.scalamart.product.{BasicProduct, ProductInput}
+import com.indilago.scalamart.testutil.{RandomHelpers, TestClock}
 
 trait ProductHelpers {
   this: RandomHelpers with TestClock =>

@@ -1,9 +1,9 @@
-package com.indilago.scalamart.testutil
+package com.indilago.scalamart.product.price
 
 import java.time.Instant
 import java.util.Currency
 
-import com.indilago.scalamart.product.price.{ProductPrice, ProductPriceInput}
+import com.indilago.scalamart.testutil.{RandomHelpers, TestClock}
 
 trait PriceHelpers { this: RandomHelpers with TestClock =>
 

@@ -4,7 +4,7 @@ import java.util.Currency
 
 import com.indilago.scalamart.BaseTestSuite
 import com.indilago.scalamart.services.ActionType
-import com.indilago.scalamart.testutil.{InjectionHelpers, PriceHelpers}
+import com.indilago.scalamart.testutil.InjectionHelpers
 import org.mockito.Mockito._
 
 import scala.concurrent.ExecutionContext.Implicits.global

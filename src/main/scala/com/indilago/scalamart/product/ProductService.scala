@@ -53,7 +53,10 @@ class DefaultProductService @Inject()(
     dao.search(id)
 
   def update(product: BasicProduct)(implicit ec: ExecutionContext): Future[BasicProduct] =
-    dao.update(product)
+    dao.update(product).map { updated =>
+      notifier.recordAction(ActionType.Update, updated)
+      updated
+    }
 
   def create(input: ProductInput)(implicit ec: ExecutionContext): Future[BasicProduct] =
     dao.create(input2Product(input)).map { created =>
