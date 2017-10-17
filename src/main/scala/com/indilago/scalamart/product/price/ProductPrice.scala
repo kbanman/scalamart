@@ -1,7 +1,9 @@
-package com.indilago.scalamart.models.product
+package com.indilago.scalamart.product.price
 
 import java.time.Instant
 import java.util.Currency
+
+import com.indilago.scalamart.Identifiable
 
 case class ProductPrice(
   id: Long,
@@ -12,4 +14,4 @@ case class ProductPrice(
   cardinality: Int,
   start: Option[Instant],
   end: Option[Instant]
-)
+) extends Identifiable

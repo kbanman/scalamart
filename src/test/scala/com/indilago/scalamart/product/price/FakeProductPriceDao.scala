@@ -1,12 +1,10 @@
-package com.indilago.scalamart.dao
+package com.indilago.scalamart.product.price
 
 import java.time.{Clock, Instant}
 
-import com.indilago.scalamart.models.product.ProductPrice
-
 import scala.concurrent.{ExecutionContext, Future}
 
-class FakeProductPriceDao(override val clock: Clock) extends ProductPriceDao {
+class FakeProductPriceDao(override protected val clock: Clock) extends ProductPriceDao {
 
   @volatile
   private var records = Seq[ProductPrice]()
@@ -16,13 +14,13 @@ class FakeProductPriceDao(override val clock: Clock) extends ProductPriceDao {
       .sortBy(_.cardinality)
   }
 
-  override def createPrice(productPrice: ProductPrice)(implicit ec: ExecutionContext) = Future {
+  override def create(productPrice: ProductPrice)(implicit ec: ExecutionContext) = Future {
     val record = productPrice.copy(id = records.length + 1, created = Instant.now(clock))
     records = records :+ record
     record
   }
 
-  def deletePrice(priceId: Long)(implicit ec: ExecutionContext) = Future {
+  def delete(priceId: Long)(implicit ec: ExecutionContext) = Future {
     val affected = records.count(_.id == priceId)
     records = records.filterNot(_.id == priceId)
     affected

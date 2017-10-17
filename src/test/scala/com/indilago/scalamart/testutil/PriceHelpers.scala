@@ -3,8 +3,7 @@ package com.indilago.scalamart.testutil
 import java.time.Instant
 import java.util.Currency
 
-import com.indilago.scalamart.models.product.ProductPrice
-import com.indilago.scalamart.services.ProductPriceInput
+import com.indilago.scalamart.product.price.{ProductPrice, ProductPriceInput}
 
 trait PriceHelpers { this: RandomHelpers with TestClock =>
 

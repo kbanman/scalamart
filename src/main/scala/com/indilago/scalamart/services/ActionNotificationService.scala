@@ -3,6 +3,7 @@ package com.indilago.scalamart.services
 import javax.inject.Singleton
 
 import com.google.inject.ImplementedBy
+import com.indilago.scalamart.Identifiable
 import com.indilago.scalamart.services.ActionType.ActionType
 import com.typesafe.scalalogging.StrictLogging
 
@@ -32,6 +33,9 @@ trait ActionNotificationService {
     comment: Option[String] = None
   )(implicit ec: ExecutionContext): Future[_] =
     recordAction(action, subject.getSimpleName, identifier, comment)
+
+  def recordAction[T <: Identifiable](action: ActionType, subject: T)(implicit ec: ExecutionContext): Future[_] =
+    recordAction(action, subject.getClass, subject.id)
 }
 
 @Singleton

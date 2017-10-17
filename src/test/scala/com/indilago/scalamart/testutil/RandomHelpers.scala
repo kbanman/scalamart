@@ -19,4 +19,11 @@ trait RandomHelpers {
   def positiveDecimal: BigDecimal =
     positiveDecimal(1000000)
 
+  def alphaNum(length: Int): String =
+    r.alphanumeric.take(length).mkString("")
+
+  def words(num: Int, maxWordLength: Int = 8): String =
+    (1 to num).foldLeft(Seq[String]()) { (words, _) =>
+      words :+ alphaNum(positiveInt(maxWordLength))
+    }.mkString(" ")
 }

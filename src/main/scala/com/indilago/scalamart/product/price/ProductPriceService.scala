@@ -1,20 +1,20 @@
-package com.indilago.scalamart.services
+package com.indilago.scalamart.product.price
 
 import java.time.{Clock, Instant}
 import java.util.Currency
 import javax.inject.{Inject, Singleton}
 
 import com.google.inject.ImplementedBy
-import com.indilago.scalamart.dao.ProductPriceDao
-import com.indilago.scalamart.models.product.ProductPrice
+import com.indilago.scalamart.exception.{EntityNotFound, ValidationFailed}
+import com.indilago.scalamart.services._
 
 import scala.concurrent.{ExecutionContext, Future}
 
 case class NoProductPriceError(productId: Long, currency: Currency)
-  extends RuntimeException(s"No active ${currency.getCurrencyCode} price for product $productId")
+  extends EntityNotFound(s"No active ${currency.getCurrencyCode} price for product $productId")
 
-case class ProductPriceValidationError(input: ProductPriceInput, message: String)
-  extends RuntimeException(s"$input failed validation: $message")
+case class ProductPriceValidationError(input: ProductPriceInput, msg: String)
+  extends ValidationFailed(s"$input failed validation: $msg")
 
 case class ProductPriceInput(
   productId: Long,
@@ -47,7 +47,7 @@ trait ProductPriceService {
   /**
     * Delete a price
     */
-  def deletePrice(productPrice: ProductPrice)(implicit ec: ExecutionContext): Future[Boolean]
+  def delete(price: ProductPrice)(implicit ec: ExecutionContext): Future[Boolean]
 
   /**
     * Create a price from ProductPriceInput
@@ -80,14 +80,14 @@ class DefaultProductPriceService @Inject()(
       existing <- dao.prices(input.productId)
       _ = assertPositive(input)
       _ = assertUniqueCardinality(input, existing)
-      created <- dao.createPrice(priceFromInput(input, determineCardinality(input, existing)))
+      created <- dao.create(priceFromInput(input, determineCardinality(input, existing)))
       _ <- notifier.recordAction(ActionType.Create, classOf[ProductPrice], created.id)
     } yield created
 
-  def deletePrice(productPrice: ProductPrice)(implicit ec: ExecutionContext): Future[Boolean] =
-    dao.deletePrice(productPrice.id).map { affected =>
+  def delete(price: ProductPrice)(implicit ec: ExecutionContext): Future[Boolean] =
+    dao.delete(price.id).map { affected =>
       if (affected > 0) {
-        notifier.recordAction(ActionType.Delete, classOf[ProductPrice], productPrice.id)
+        notifier.recordAction(ActionType.Delete, price)
         true
       } else false
     }
