@@ -8,7 +8,7 @@ trait ProductHelpers {
   this: RandomHelpers with TestClock =>
 
   def makeProduct(availabilityStart: Option[Instant], availabilityEnd: Option[Instant]) =
-    BasicProduct(
+    BaseProduct(
       id = 0,
       created = Instant.now(clock),
       name = s"Product ${alphaNum(6)}",
@@ -17,10 +17,10 @@ trait ProductHelpers {
       availabilityEnd = availabilityEnd
     )
 
-  def makeProduct: BasicProduct =
+  def makeProduct: BaseProduct =
     makeProduct(None, None)
 
-  def makeProductInput(product: BasicProduct): ProductInput =
+  def makeProductInput(product: BaseProduct): ProductInput =
     ProductInput(
       name = product.name,
       description = product.description,
@@ -28,8 +28,8 @@ trait ProductHelpers {
       availabilityEnd = product.availabilityEnd
     )
 
-  implicit class ProductHelpers(p: BasicProduct) {
-    def withoutId: BasicProduct =
+  implicit class ProductHelpers(p: BaseProduct) {
+    def withoutId: BaseProduct =
       p.copy(id = 0)
   }
 }

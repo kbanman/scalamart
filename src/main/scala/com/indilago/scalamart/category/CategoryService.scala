@@ -5,7 +5,7 @@ import javax.inject.{Inject, Singleton}
 
 import com.google.inject.ImplementedBy
 import com.indilago.scalamart.exception.{BadInput, EntityNotFound}
-import com.indilago.scalamart.product.{BasicProduct, ProductService}
+import com.indilago.scalamart.product.{BaseProduct, ProductService}
 import com.indilago.scalamart.services.{ActionNotificationService, ActionType}
 
 import scala.concurrent.{ExecutionContext, Future}

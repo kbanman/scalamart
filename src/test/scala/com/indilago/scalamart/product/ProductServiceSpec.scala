@@ -20,7 +20,7 @@ class ProductServiceSpec extends BaseTestSuite with InjectionHelpers with Produc
     val created = sut.create(input).futureValue
 
     created.withoutId shouldEqual product
-    notifier.find(ActionType.Create, classOf[BasicProduct]).length shouldBe 1
+    notifier.find(ActionType.Create, classOf[BaseProduct]).length shouldBe 1
 
     verify(dao).create(product)
   }
@@ -35,7 +35,7 @@ class ProductServiceSpec extends BaseTestSuite with InjectionHelpers with Produc
 
     sut.update(updated).futureValue shouldBe updated
     sut.find(product.id).futureValue shouldBe updated
-    notifier.find(ActionType.Update, classOf[BasicProduct]).length shouldBe 1
+    notifier.find(ActionType.Update, classOf[BaseProduct]).length shouldBe 1
   }
 
   it should "delete a product" in {
@@ -43,7 +43,7 @@ class ProductServiceSpec extends BaseTestSuite with InjectionHelpers with Produc
 
     sut.delete(product).futureValue shouldBe true
     sut.delete(product).futureValue shouldBe false
-    notifier.find(ActionType.Delete, classOf[BasicProduct]).length shouldBe 1
+    notifier.find(ActionType.Delete, classOf[BaseProduct]).length shouldBe 1
 
     verify(dao, times(2)).delete(product.id)
   }

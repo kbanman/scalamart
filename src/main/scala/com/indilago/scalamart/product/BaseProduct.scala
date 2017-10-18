@@ -4,7 +4,7 @@ import java.time._
 
 import com.indilago.scalamart.Identifiable
 
-case class BasicProduct(
+case class BaseProduct(
   id: Long,
   created: Instant,
   name: String,
