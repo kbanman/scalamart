@@ -2,7 +2,7 @@ name := "scalamart"
 
 version := "0.1"
 
-scalaVersion := "2.12.3"
+scalaVersion := "2.12.4"
 
 libraryDependencies ++= Seq(
   "codes.reactive" %% "scala-time" % "0.4.1",

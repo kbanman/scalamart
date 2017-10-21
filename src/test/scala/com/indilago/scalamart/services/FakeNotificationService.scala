@@ -18,4 +18,7 @@ class FakeNotificationService extends ActionNotificationService {
 
   def find(action: ActionType, subject: Class[_]): Seq[Event] =
     events.filter(e => e.action == action && e.subject == subject.getSimpleName)
+
+  def reset(): Unit =
+    events = Seq()
 }

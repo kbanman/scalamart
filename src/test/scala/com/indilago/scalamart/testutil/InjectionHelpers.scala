@@ -4,7 +4,7 @@ import java.time.Clock
 
 import com.google.inject.{AbstractModule, Guice, Injector}
 import com.indilago.scalamart.category.{CategoryDao, CategoryService, FakeCategoryDao}
-import com.indilago.scalamart.product.option.{FakeProductOptionDao, ProductOptionDao, ProductOptionService}
+import com.indilago.scalamart.product.option._
 import com.indilago.scalamart.product.{FakeProductDao, ProductDao}
 import com.indilago.scalamart.product.price.{FakeProductPriceDao, ProductPriceDao, ProductPriceService}
 import com.indilago.scalamart.services.{ActionNotificationService, FakeNotificationService}
@@ -18,6 +18,7 @@ trait InjectionHelpers { this: TestClock =>
   val productPriceDao: FakeProductPriceDao = spy(new FakeProductPriceDao(clock))
   val categoryDao: FakeCategoryDao = spy(new FakeCategoryDao)
   val productOptionDao: FakeProductOptionDao = spy(new FakeProductOptionDao)
+  val productOptionItemDao: FakeProductOptionItemDao = spy(new FakeProductOptionItemDao)
 
   /**
     * Allow configuration at the test level
@@ -32,6 +33,7 @@ trait InjectionHelpers { this: TestClock =>
       bind[ProductDao].toInstance(productDao)
       bind[CategoryDao].toInstance(categoryDao)
       bind[ProductOptionDao].toInstance(productOptionDao)
+      bind[ProductOptionItemDao].toInstance(productOptionItemDao)
       bind[Clock].toInstance(clock)
       bind[ActionNotificationService].toInstance(notifier)
       bind[ProductPriceService]

@@ -1,7 +1,8 @@
 package com.indilago.scalamart.product.option
 
 import com.indilago.scalamart.Identifiable
-import com.indilago.scalamart.product.option.ProductOptionType.ProductOptionType
+import com.indilago.scalamart.product.option
+import com.indilago.scalamart.product.option.ProductOptionType.{Basic, Product, ProductOptionType}
 
 case class ProductOption(
   id: Long,
@@ -19,9 +20,14 @@ case class ProductOptionInput(
 sealed trait OptionItem extends Identifiable {
   def optionId: Long
   def id: Long
+  def optionType: ProductOptionType
 }
-case class BasicOptionItem(id: Long, optionId: Long, name: String) extends OptionItem
-case class ProductOptionItem(id: Long, optionId: Long, productId: Long) extends OptionItem
+case class BasicOptionItem(id: Long, optionId: Long, name: String) extends OptionItem {
+  val optionType: ProductOptionType = Basic
+}
+case class ProductOptionItem(id: Long, optionId: Long, productId: Long) extends OptionItem {
+  val optionType: ProductOptionType = Product
+}
 
 sealed trait OptionItemInput {
   def optionId: Long

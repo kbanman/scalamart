@@ -3,7 +3,8 @@ package com.indilago.scalamart.product.option
 import javax.inject.{Inject, Singleton}
 
 import com.google.inject.ImplementedBy
-import com.indilago.scalamart.exception.{BadInput, EntityNotFound}
+import com.indilago.scalamart.Identifiable
+import com.indilago.scalamart.exception.{BadInput, EntityNotFound, PreconditionFailed}
 import com.indilago.scalamart.product.BaseProduct
 import com.indilago.scalamart.product.option.ProductOptionType.{Basic, Product}
 import com.indilago.scalamart.services.ActionNotificationService
@@ -18,7 +19,7 @@ trait ProductOptionService {
   def removeOption(product: BaseProduct, option: ProductOption)(implicit ec: ExecutionContext): Future[Boolean]
   def find(optionId: Long)(implicit ec: ExecutionContext): Future[ProductOption]
   def search(optionId: Long)(implicit ec: ExecutionContext): Future[Option[ProductOption]]
-  def create(option: ProductOptionInput)(implicit ec: ExecutionContext): Future[ProductOption]
+  def create(input: ProductOptionInput)(implicit ec: ExecutionContext): Future[ProductOption]
   def update(option: ProductOption)(implicit ec: ExecutionContext): Future[ProductOption]
   def delete(option: ProductOption)(implicit ec: ExecutionContext): Future[Boolean]
   def getItems(option: ProductOption)(implicit ec: ExecutionContext): Future[Seq[OptionItem]]
@@ -27,30 +28,43 @@ trait ProductOptionService {
   def deleteItem(item: OptionItem)(implicit ec: ExecutionContext): Future[Boolean]
 }
 
+object ProductOptionService {
+  object ErrorMessage {
+    val NonExistentOption = "Option doesn't exist"
+    val NonExistentItem = "Item doesn't exist"
+    val InvalidItemType = "Invalid item type"
+    val InvalidDefaultItem = "Default item must belong to the option"
+    val ItemsChangingType = "Must remove all items before changing option type"
+    val CannotChangeItemOption = "Cannot change the option an item belongs to"
+  }
+}
+
 @Singleton
 class DefaultProductOptionService @Inject()(
-  dao: ProductOptionDao,
+  optionDao: ProductOptionDao,
+  itemDao: ProductOptionItemDao,
   notifier: ActionNotificationService
 ) extends ProductOptionService {
+  import ProductOptionService.ErrorMessage._
 
   def getOptions(product: BaseProduct)(implicit ec: ExecutionContext): Future[Seq[ProductOption]] =
-    dao.optionsForProduct(product)
+    optionDao.optionsForProduct(product)
 
   def addOption(product: BaseProduct, option: ProductOption)(implicit ec: ExecutionContext): Future[Boolean] = {
-    val op = OptionProduct(product.id, option.id)
+    val op = OptionProduct(option.id, product.id)
     for {
-      affected <- dao.addOptionProduct(op)
+      affected <- optionDao.addOptionProduct(op)
       changed = affected > 0
-      _ <- notifier.recordAction(Create, op)
+      _ <- notify(Create, op, changed)
     } yield changed
   }
 
   def removeOption(product: BaseProduct, option: ProductOption)(implicit ec: ExecutionContext): Future[Boolean] = {
-    val op = OptionProduct(product.id, option.id)
+    val op = OptionProduct(option.id, product.id)
     for {
-      affected <- dao.removeOptionProduct(op)
+      affected <- optionDao.removeOptionProduct(op)
       changed = affected > 0
-      _ <- notifier.recordAction(Delete, op)
+      _ <- notify(Delete, op, changed)
     } yield changed
   }
 
@@ -58,56 +72,89 @@ class DefaultProductOptionService @Inject()(
     search(optionId).map(_.getOrElse(throw EntityNotFound(classOf[ProductOption], optionId)))
 
   def search(optionId: Long)(implicit ec: ExecutionContext): Future[Option[ProductOption]] =
-    dao.search(optionId)
+    optionDao.search(optionId)
 
-  def create(option: ProductOptionInput)(implicit ec: ExecutionContext): Future[ProductOption] =
+  def create(input: ProductOptionInput)(implicit ec: ExecutionContext): Future[ProductOption] = {
+    val option = toOption(input)
     for {
-      created <- dao.create(toOption(option))
-      _ <- notifier.recordAction(Create, created)
+      _ <- assertDefaultItemExists(option)
+      created <- optionDao.create(option)
+      _ <- notify(Create, created)
     } yield created
+  }
 
   def update(option: ProductOption)(implicit ec: ExecutionContext): Future[ProductOption] =
     for {
-      updated <- dao.update(option)
-      _ <- notifier.recordAction(Update, updated)
+      existing <- optionDao.search(option.id)
+      _ <- assertDefaultItemExists(option)
+      _ <- assertNoItemsIfChangingType(existing.get, option)
+      updated <- optionDao.update(option)
+      _ <- notify(Update, updated)
     } yield updated
 
   def delete(option: ProductOption)(implicit ec: ExecutionContext): Future[Boolean] =
     for {
       items <- getItems(option)
-      _ <- Future.sequence(items.map(dao.deleteItem))
-      affected <- dao.delete(option)
+      _ <- Future.sequence(items.map(deleteItem))
+      affected <- optionDao.delete(option)
       wasDeleted = affected > 0
-      _ <- notifier.recordAction(Delete, classOf[ProductOption], option) if wasDeleted
+      _ <- notify(Delete, option, wasDeleted)
     } yield wasDeleted
 
   def getItems(option: ProductOption)(implicit ec: ExecutionContext): Future[Seq[OptionItem]] =
-    dao.itemsForOption(option).map(_.map(r => toItem(option, r)))
+    itemDao.itemsForOption(option)
+      .map(_.map(r => toItem(option, r)))
 
   def createItem(input: OptionItemInput)(implicit ec: ExecutionContext): Future[OptionItem] =
     for {
-      maybeOption <- dao.search(input.optionId)
-      option = maybeOption.getOrElse(throw new BadInput("Option doesn't exist"))
-      createdRecord <- dao.createItem(toItem(input))
+      maybeOption <- optionDao.search(input.optionId)
+      option = maybeOption.getOrElse(throw BadInput(NonExistentOption))
+      item = toItem(input)
+      _ = if (item.optionType != option.kind) throw BadInput(InvalidItemType)
+      createdRecord <- itemDao.create(item)
       createdItem = toItem(option, createdRecord)
-      _ <- notifier.recordAction(Create, createdItem)
+      _ <- notifyItem(Create, createdItem)
     } yield createdItem
 
   def updateItem(item: OptionItem)(implicit ec: ExecutionContext): Future[OptionItem] =
     for {
-      maybeOption <- dao.search(item.optionId)
-      option = maybeOption.getOrElse(throw BadInput("Option doesn't exist"))
-      updatedRecord <- dao.updateItem(item)
+      maybeOption <- optionDao.search(item.optionId)
+      option = maybeOption.getOrElse(throw BadInput(NonExistentOption))
+      maybeExisting <- itemDao.search(item.id)
+      existing = maybeExisting.getOrElse(throw EntityNotFound(classOf[OptionItem], item.id))
+      _ = if (item.optionId != existing.optionId) throw BadInput(CannotChangeItemOption)
+      _ = if (item.optionType != option.kind) throw BadInput(InvalidItemType)
+      updatedRecord <- itemDao.update(item)
       updatedItem = toItem(option, updatedRecord)
-      _ <- notifier.recordAction(Update, updatedItem)
+      _ <- notifyItem(Update, updatedItem)
     } yield updatedItem
 
   def deleteItem(item: OptionItem)(implicit ec: ExecutionContext): Future[Boolean] =
     for {
-      affected <- dao.deleteItem(item)
+      affected <- itemDao.delete(item)
       wasDeleted = affected > 0
-      _ <- notifier.recordAction(Delete, item) if wasDeleted
+      _ <- notifyItem(Delete, item, wasDeleted)
     } yield wasDeleted
+
+  private def assertDefaultItemExists(option: ProductOption)(implicit ec: ExecutionContext): Future[_] =
+    option.defaultItemId match {
+      case Some(itemId) =>
+        itemDao.itemsForOption(option).map { items =>
+          items.find(_.id == itemId).getOrElse {
+            throw new BadInput(InvalidDefaultItem)
+          }
+        }
+      case None =>
+        Future.successful({})
+    }
+
+  private def assertNoItemsIfChangingType(existing: ProductOption, updated: ProductOption)(implicit ec: ExecutionContext): Future[_] =
+    if (existing.kind != updated.kind) {
+      itemDao.itemsForOption(existing).map { items =>
+        if (items.nonEmpty)
+          throw new PreconditionFailed(ItemsChangingType)
+      }
+    } else Future.successful({})
 
   private def toOption: ProductOptionInput => ProductOption = {
     case ProductOptionInput(name, kind, defaultItemId) =>
@@ -128,4 +175,16 @@ class DefaultProductOptionService @Inject()(
       case Product =>
         ProductOptionItem(r.id, r.optionId, r.productId.get)
     }
+
+  private def notify[T <: Identifiable](action: ActionType, entity: T, shouldNotify: Boolean = true)(implicit ec: ExecutionContext): Future[_] =
+    if (shouldNotify)
+      notifier.recordAction(action, entity)
+    else
+      Future.successful({})
+
+  private def notifyItem(action: ActionType, item: OptionItem, shouldNotify: Boolean = true)(implicit ec: ExecutionContext): Future[_] =
+    if (shouldNotify)
+      notifier.recordAction(action, classOf[OptionItem], item.id)
+    else
+      Future.successful({})
 }

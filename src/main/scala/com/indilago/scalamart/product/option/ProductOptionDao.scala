@@ -5,13 +5,6 @@ import com.indilago.scalamart.product.BaseProduct
 
 import scala.concurrent.{ExecutionContext, Future}
 
-case class OptionItemRecord(
-  id: Long,
-  optionId: Long,
-  name: Option[String],
-  productId: Option[Long]
-) extends Identifiable
-
 case class OptionProduct(
   optionId: Long,
   productId: Long
@@ -34,12 +27,4 @@ trait ProductOptionDao {
   def update(option: ProductOption)(implicit ec: ExecutionContext): Future[ProductOption]
 
   def delete(option: ProductOption)(implicit ec: ExecutionContext): Future[Int]
-
-  def itemsForOption(option: ProductOption)(implicit ec: ExecutionContext): Future[Seq[OptionItemRecord]]
-
-  def createItem(item: OptionItem)(implicit ec: ExecutionContext): Future[OptionItemRecord]
-
-  def updateItem(item: OptionItem)(implicit ec: ExecutionContext): Future[OptionItemRecord]
-
-  def deleteItem(item: OptionItem)(implicit ec: ExecutionContext): Future[Int]
 }
