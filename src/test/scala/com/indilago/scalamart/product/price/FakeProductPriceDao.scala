@@ -14,8 +14,8 @@ class FakeProductPriceDao(override protected val clock: Clock) extends ProductPr
       .sortBy(_.cardinality)
   }
 
-  override def create(productPrice: ProductPrice)(implicit ec: ExecutionContext) = Future {
-    val record = productPrice.copy(id = records.length + 1, created = Instant.now(clock))
+  override def create(price: ProductPrice)(implicit ec: ExecutionContext) = Future {
+    val record = price.copy(id = records.length + 1, created = Instant.now(clock))
     records = records :+ record
     record
   }

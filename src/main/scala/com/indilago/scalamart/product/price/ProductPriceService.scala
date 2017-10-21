@@ -64,12 +64,20 @@ trait ProductPriceService {
   )
 }
 
+object ProductPriceService {
+  object ErrorMessage {
+    val NegativeAmount = "Prices must have a positive amount"
+    val DuplicateCardinality = "New prices must not have the same cardinality as an existing price"
+  }
+}
+
 @Singleton
 class DefaultProductPriceService @Inject()(
   dao: ProductPriceDao,
   notifier: ActionNotificationService,
   protected val clock: Clock
 ) extends ProductPriceService {
+  import ProductPriceService.ErrorMessage._
 
   override def currentPrice(productId: Long, currency: Currency)(implicit ec: ExecutionContext): Future[ProductPrice] =
     dao.activePrice(productId, currency)
@@ -94,11 +102,11 @@ class DefaultProductPriceService @Inject()(
 
   private def assertPositive(input: ProductPriceInput): Unit =
     if (input.amount < 0)
-      throw ProductPriceValidationError(input, "Prices must have a positive amount")
+      throw ProductPriceValidationError(input, NegativeAmount)
 
   private def assertUniqueCardinality(input: ProductPriceInput, existing: Seq[ProductPrice]): Unit =
     if (input.cardinality.nonEmpty && existing.exists(_.cardinality == input.cardinality.get))
-      throw ProductPriceValidationError(input, "New prices must not have the same cardinality as an existing price")
+      throw ProductPriceValidationError(input, DuplicateCardinality)
 
   private def determineCardinality(input: ProductPriceInput, existing: Seq[ProductPrice]): Int =
     existing.headOption.map(_.cardinality).getOrElse(0)
