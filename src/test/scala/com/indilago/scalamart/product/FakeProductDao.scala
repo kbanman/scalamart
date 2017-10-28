@@ -21,7 +21,7 @@ class FakeProductDao(protected val clock: Clock) extends ProductDao {
     affected
   }
 
-  override def search(id: Long)(implicit ec: ExecutionContext) = Future {
+  override def find(id: Long)(implicit ec: ExecutionContext) = Future {
     records.find(_.id == id)
   }
 

@@ -15,14 +15,17 @@ import scala.concurrent.{ExecutionContext, Future}
 @ImplementedBy(classOf[DefaultProductOptionService])
 trait ProductOptionService {
   def getOptions(product: BaseProduct)(implicit ec: ExecutionContext): Future[Seq[ProductOption]]
-  def addOption(product: BaseProduct, option: ProductOption)(implicit ec: ExecutionContext): Future[Boolean]
-  def removeOption(product: BaseProduct, option: ProductOption)(implicit ec: ExecutionContext): Future[Boolean]
-  def find(optionId: Long)(implicit ec: ExecutionContext): Future[ProductOption]
-  def search(optionId: Long)(implicit ec: ExecutionContext): Future[Option[ProductOption]]
+  def findOption(product: BaseProduct, option: ProductOption)(implicit ec: ExecutionContext): Future[Option[OptionProduct]]
+  def addOption(op: OptionProduct)(implicit ec: ExecutionContext): Future[Boolean]
+  def updateOption(op: OptionProduct)(implicit ec: ExecutionContext): Future[OptionProduct]
+  def removeOption(op: OptionProduct)(implicit ec: ExecutionContext): Future[Boolean]
+  def require(optionId: Long)(implicit ec: ExecutionContext): Future[ProductOption]
+  def find(optionId: Long)(implicit ec: ExecutionContext): Future[Option[ProductOption]]
   def create(input: ProductOptionInput)(implicit ec: ExecutionContext): Future[ProductOption]
   def update(option: ProductOption)(implicit ec: ExecutionContext): Future[ProductOption]
   def delete(option: ProductOption)(implicit ec: ExecutionContext): Future[Boolean]
   def getItems(option: ProductOption)(implicit ec: ExecutionContext): Future[Seq[OptionItem]]
+  def findItem(option: ProductOption, itemId: Long)(implicit ec: ExecutionContext): Future[OptionItem]
   def createItem(input: OptionItemInput)(implicit ec: ExecutionContext): Future[OptionItem]
   def updateItem(item: OptionItem)(implicit ec: ExecutionContext): Future[OptionItem]
   def deleteItem(item: OptionItem)(implicit ec: ExecutionContext): Future[Boolean]
@@ -50,29 +53,34 @@ class DefaultProductOptionService @Inject()(
   def getOptions(product: BaseProduct)(implicit ec: ExecutionContext): Future[Seq[ProductOption]] =
     optionDao.optionsForProduct(product)
 
-  def addOption(product: BaseProduct, option: ProductOption)(implicit ec: ExecutionContext): Future[Boolean] = {
-    val op = OptionProduct(option.id, product.id)
+  def findOption(product: BaseProduct, option: ProductOption)(implicit ec: ExecutionContext): Future[Option[OptionProduct]] =
+    optionDao.findOptionProduct(product, option)
+
+  def addOption(op: OptionProduct)(implicit ec: ExecutionContext): Future[Boolean] =
     for {
       affected <- optionDao.addOptionProduct(op)
       changed = affected > 0
       _ <- notify(Create, op, changed)
     } yield changed
-  }
 
-  def removeOption(product: BaseProduct, option: ProductOption)(implicit ec: ExecutionContext): Future[Boolean] = {
-    val op = OptionProduct(option.id, product.id)
+  def updateOption(op: OptionProduct)(implicit ec: ExecutionContext): Future[OptionProduct] =
+    for {
+      updated <- optionDao.updateOptionProduct(op)
+      _ <- notify(Update, op)
+    } yield updated
+
+  def removeOption(op: OptionProduct)(implicit ec: ExecutionContext): Future[Boolean] =
     for {
       affected <- optionDao.removeOptionProduct(op)
       changed = affected > 0
       _ <- notify(Delete, op, changed)
     } yield changed
-  }
 
-  def find(optionId: Long)(implicit ec: ExecutionContext): Future[ProductOption] =
-    search(optionId).map(_.getOrElse(throw EntityNotFound(classOf[ProductOption], optionId)))
+  def require(optionId: Long)(implicit ec: ExecutionContext): Future[ProductOption] =
+    find(optionId).map(_.getOrElse(throw EntityNotFound(classOf[ProductOption], optionId)))
 
-  def search(optionId: Long)(implicit ec: ExecutionContext): Future[Option[ProductOption]] =
-    optionDao.search(optionId)
+  def find(optionId: Long)(implicit ec: ExecutionContext): Future[Option[ProductOption]] =
+    optionDao.find(optionId)
 
   def create(input: ProductOptionInput)(implicit ec: ExecutionContext): Future[ProductOption] = {
     val option = toOption(input)
@@ -85,7 +93,7 @@ class DefaultProductOptionService @Inject()(
 
   def update(option: ProductOption)(implicit ec: ExecutionContext): Future[ProductOption] =
     for {
-      existing <- optionDao.search(option.id)
+      existing <- optionDao.find(option.id)
       _ <- assertDefaultItemExists(option)
       _ <- assertNoItemsIfChangingType(existing.get, option)
       updated <- optionDao.update(option)
@@ -105,9 +113,14 @@ class DefaultProductOptionService @Inject()(
     itemDao.itemsForOption(option)
       .map(_.map(r => toItem(option, r)))
 
+  def findItem(option: ProductOption, itemId: Long)(implicit ec: ExecutionContext): Future[OptionItem] =
+    itemDao.search(itemId)
+      .map(_.getOrElse(throw EntityNotFound(classOf[OptionItem], itemId)))
+      .map(r => toItem(option, r))
+
   def createItem(input: OptionItemInput)(implicit ec: ExecutionContext): Future[OptionItem] =
     for {
-      maybeOption <- optionDao.search(input.optionId)
+      maybeOption <- optionDao.find(input.optionId)
       option = maybeOption.getOrElse(throw BadInput(NonExistentOption))
       item = toItem(input)
       _ = if (item.optionType != option.kind) throw BadInput(InvalidItemType)
@@ -118,7 +131,7 @@ class DefaultProductOptionService @Inject()(
 
   def updateItem(item: OptionItem)(implicit ec: ExecutionContext): Future[OptionItem] =
     for {
-      maybeOption <- optionDao.search(item.optionId)
+      maybeOption <- optionDao.find(item.optionId)
       option = maybeOption.getOrElse(throw BadInput(NonExistentOption))
       maybeExisting <- itemDao.search(item.id)
       existing = maybeExisting.getOrElse(throw EntityNotFound(classOf[OptionItem], item.id))

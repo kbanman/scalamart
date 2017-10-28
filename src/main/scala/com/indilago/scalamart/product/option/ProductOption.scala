@@ -1,7 +1,6 @@
 package com.indilago.scalamart.product.option
 
 import com.indilago.scalamart.Identifiable
-import com.indilago.scalamart.product.option
 import com.indilago.scalamart.product.option.ProductOptionType.{Basic, Product, ProductOptionType}
 
 case class ProductOption(
@@ -39,5 +38,15 @@ object ProductOptionType extends Enumeration {
   type ProductOptionType = Value
   val Basic = Value("basic")
   val Product = Value("product")
+}
+
+case class OptionProduct(
+  optionId: Long,
+  productId: Long,
+  min: Int,
+  max: Int
+) extends Identifiable {
+  def id: (Long, Long) =
+    optionId -> productId
 }
 

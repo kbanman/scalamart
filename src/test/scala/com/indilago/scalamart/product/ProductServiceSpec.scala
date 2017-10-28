@@ -26,7 +26,7 @@ class ProductServiceSpec extends BaseTestSuite with InjectionHelpers with Produc
   }
 
   it should "gracefully handle a missing product" in {
-    sut.find(0).failed.futureValue shouldBe an[EntityNotFound]
+    sut.require(0).failed.futureValue shouldBe an[EntityNotFound]
   }
 
   it should "update a product" in {
@@ -34,7 +34,7 @@ class ProductServiceSpec extends BaseTestSuite with InjectionHelpers with Produc
     val updated = product.copy(name = "Changed")
 
     sut.update(updated).futureValue shouldBe updated
-    sut.find(product.id).futureValue shouldBe updated
+    sut.require(product.id).futureValue shouldBe updated
     notifier.find(ActionType.Update, classOf[BaseProduct]).length shouldBe 1
   }
 

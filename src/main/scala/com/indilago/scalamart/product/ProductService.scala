@@ -15,12 +15,12 @@ trait ProductService {
     * Find a product
     * @throws EntityNotFound if missing
     */
-  def find(id: Long)(implicit ec: ExecutionContext): Future[BaseProduct]
+  def require(id: Long)(implicit ec: ExecutionContext): Future[BaseProduct]
 
   /**
     * Find a product, returning an option
     */
-  def maybeFind(id: Long)(implicit ec: ExecutionContext): Future[Option[BaseProduct]]
+  def find(id: Long)(implicit ec: ExecutionContext): Future[Option[BaseProduct]]
 
   /**
     * Update a product
@@ -46,11 +46,11 @@ class DefaultProductService @Inject()(
   clock: Clock
 ) extends ProductService {
 
-  def find(id: Long)(implicit ec: ExecutionContext): Future[BaseProduct] =
-    maybeFind(id).map(_.getOrElse(throw EntityNotFound(classOf[BaseProduct], id)))
+  def require(id: Long)(implicit ec: ExecutionContext): Future[BaseProduct] =
+    find(id).map(_.getOrElse(throw EntityNotFound(classOf[BaseProduct], id)))
 
-  def maybeFind(id: Long)(implicit ec: ExecutionContext): Future[Option[BaseProduct]] =
-    dao.search(id)
+  def find(id: Long)(implicit ec: ExecutionContext): Future[Option[BaseProduct]] =
+    dao.find(id)
 
   def update(product: BaseProduct)(implicit ec: ExecutionContext): Future[BaseProduct] =
     dao.update(product).map { updated =>

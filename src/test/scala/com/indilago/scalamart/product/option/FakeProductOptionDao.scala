@@ -15,7 +15,11 @@ class FakeProductOptionDao extends ProductOptionDao {
   def optionsForProduct(product: BaseProduct)(implicit ec: ExecutionContext): Future[Seq[ProductOption]] = Future {
     products.filter(_.productId == product.id)
       .map(_.optionId)
-      .map(find)
+      .map(require)
+  }
+
+  def findOptionProduct(product: BaseProduct, option: ProductOption)(implicit ec: ExecutionContext): Future[Option[OptionProduct]] = Future {
+    products.find(op => op.productId == product.id && op.optionId == option.id)
   }
 
   def addOptionProduct(op: OptionProduct)(implicit ec: ExecutionContext): Future[Int] = Future {
@@ -27,6 +31,12 @@ class FakeProductOptionDao extends ProductOptionDao {
     }
   }
 
+  def updateOptionProduct(op: OptionProduct)(implicit ec: ExecutionContext): Future[OptionProduct] = Future {
+    val existing = products.find(_.id == op.id).get
+    products = products.updated(products.indexOf(existing), op)
+    op
+  }
+
   def removeOptionProduct(op: OptionProduct)(implicit ec: ExecutionContext): Future[Int] = Future {
     products.find(_ == op) match {
       case Some(_) =>
@@ -36,7 +46,7 @@ class FakeProductOptionDao extends ProductOptionDao {
     }
   }
 
-  def search(optionId: Long)(implicit ec: ExecutionContext): Future[Option[ProductOption]] = Future {
+  def find(optionId: Long)(implicit ec: ExecutionContext): Future[Option[ProductOption]] = Future {
     records.find(_.id == optionId)
   }
 
@@ -47,7 +57,7 @@ class FakeProductOptionDao extends ProductOptionDao {
   }
 
   def update(option: ProductOption)(implicit ec: ExecutionContext): Future[ProductOption] = Future {
-    val existing = find(option.id)
+    val existing = require(option.id)
     records = records.updated(records.indexOf(existing), option)
     option
   }
@@ -61,6 +71,6 @@ class FakeProductOptionDao extends ProductOptionDao {
     }
   }
 
-  private def find(optionId: Long): ProductOption =
+  private def require(optionId: Long): ProductOption =
     records.find(_.id == optionId).get
 }

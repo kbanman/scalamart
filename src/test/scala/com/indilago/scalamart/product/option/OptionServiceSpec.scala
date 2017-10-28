@@ -37,18 +37,18 @@ class OptionServiceSpec extends BaseTestSuite with BeforeAndAfterEach with Injec
   it should "find an option" in {
     val option = insertOption()
 
-    sut.find(option.id).futureValue shouldBe option
+    sut.require(option.id).futureValue shouldBe option
   }
 
   it should "throw a NotFound error" in {
-    sut.find(positiveLong).failed.futureValue shouldBe a[EntityNotFound]
+    sut.require(positiveLong).failed.futureValue shouldBe a[EntityNotFound]
   }
 
   it should "return an optional when searching by id" in {
     val option = insertOption()
 
-    sut.search(option.id).futureValue shouldBe Some(option)
-    sut.search(positiveLong).futureValue shouldBe None
+    sut.find(option.id).futureValue shouldBe Some(option)
+    sut.find(positiveLong).futureValue shouldBe None
   }
 
   it should "update an option" in {
@@ -138,19 +138,21 @@ class OptionServiceSpec extends BaseTestSuite with BeforeAndAfterEach with Injec
   it should "idempotently attach an option to a product" in {
     val option = insertOption(Basic)
     val product = makeProduct.copy(id = positiveLong)
+    val op = OptionProduct(option.id, product.id, min = 0, max = 1)
 
-    sut.addOption(product, option).futureValue shouldBe true
-    sut.addOption(product, option).futureValue shouldBe false
+    sut.addOption(op).futureValue shouldBe true
+    sut.addOption(op).futureValue shouldBe false
     notifier.find(Create, classOf[OptionProduct]).length shouldBe 1
   }
 
   it should "idempotently remove an option from a product" in {
     val option = insertOption(Basic)
     val product = makeProduct
-    sut.addOption(product, option).futureValue
+    val op = OptionProduct(option.id, product.id, min = 1, max = 1)
+    sut.addOption(op).futureValue
 
-    sut.removeOption(product, option).futureValue shouldBe true
-    sut.removeOption(product, option).futureValue shouldBe false
+    sut.removeOption(op).futureValue shouldBe true
+    sut.removeOption(op).futureValue shouldBe false
     notifier.find(Delete, classOf[OptionProduct]).length shouldBe 1
   }
 
@@ -158,10 +160,12 @@ class OptionServiceSpec extends BaseTestSuite with BeforeAndAfterEach with Injec
     val o1 = insertOption(Basic)
     val o2 = insertOption(Product)
     val product = makeProduct.copy(id = positiveLong)
+    val op1 = OptionProduct(o1.id, product.id, min = 1, max = 1)
+    val op2 = OptionProduct(o2.id, product.id, min = 1, max = 1)
 
     sut.getOptions(product).futureValue shouldBe Seq[ProductOption]()
-    sut.addOption(product, o1).futureValue
-    sut.addOption(product, o2).futureValue
+    sut.addOption(op1).futureValue
+    sut.addOption(op2).futureValue
     sut.getOptions(product).futureValue shouldBe Seq(o1, o2)
   }
 
