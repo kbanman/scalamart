@@ -13,6 +13,11 @@ class CategoryServiceSpec extends BaseTestSuite with InjectionHelpers with Categ
   val dao: FakeCategoryDao = categoryDao
   def sut: CategoryService = injector.getInstance(classOf[CategoryService])
 
+  override def beforeEach(): Unit = {
+    super.beforeEach()
+    notifier.reset()
+  }
+
   "CategoryService" should "insert a category" in {
     val category = makeCategory
     val input = makeCategoryInput(category)
@@ -21,8 +26,6 @@ class CategoryServiceSpec extends BaseTestSuite with InjectionHelpers with Categ
 
     created.withoutId shouldEqual category
     notifier.find(ActionType.Create, classOf[Category]).length shouldBe 1
-
-    verify(dao).create(category)
   }
 
   it should "gracefully handle a missing category" in {
@@ -51,8 +54,6 @@ class CategoryServiceSpec extends BaseTestSuite with InjectionHelpers with Categ
     sut.delete(category).futureValue shouldBe true
     sut.delete(category).futureValue shouldBe false
     notifier.find(ActionType.Delete, classOf[Category]).length shouldBe 1
-
-    verify(dao, times(2)).delete(category.id)
   }
 
   it should "add a product to a category" in {

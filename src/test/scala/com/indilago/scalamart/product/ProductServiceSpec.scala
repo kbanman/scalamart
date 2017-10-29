@@ -13,6 +13,11 @@ class ProductServiceSpec extends BaseTestSuite with InjectionHelpers with Produc
   val dao: FakeProductDao = productDao
   def sut: ProductService = injector.getInstance(classOf[ProductService])
 
+  override def beforeEach(): Unit = {
+    super.beforeEach()
+    notifier.reset()
+  }
+
   "ProductService" should "insert a product" in {
     val product = makeProduct
     val input = makeProductInput(product)
@@ -21,8 +26,6 @@ class ProductServiceSpec extends BaseTestSuite with InjectionHelpers with Produc
 
     created.withoutId shouldEqual product
     notifier.find(ActionType.Create, classOf[BaseProduct]).length shouldBe 1
-
-    verify(dao).create(product)
   }
 
   it should "gracefully handle a missing product" in {
@@ -44,7 +47,5 @@ class ProductServiceSpec extends BaseTestSuite with InjectionHelpers with Produc
     sut.delete(product).futureValue shouldBe true
     sut.delete(product).futureValue shouldBe false
     notifier.find(ActionType.Delete, classOf[BaseProduct]).length shouldBe 1
-
-    verify(dao, times(2)).delete(product.id)
   }
 }

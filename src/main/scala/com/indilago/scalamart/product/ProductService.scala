@@ -65,7 +65,7 @@ class DefaultProductService @Inject()(
     }
 
   def delete(product: BaseProduct)(implicit ec: ExecutionContext): Future[Boolean] =
-    dao.delete(product.id).map { affected =>
+    dao.delete(product).map { affected =>
       if (affected > 0) {
         notifier.recordAction(ActionType.Delete, product)
         true

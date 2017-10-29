@@ -1,13 +1,14 @@
 package com.indilago.scalamart.product.option
 
 import com.indilago.scalamart.product.BaseProduct
+import com.indilago.scalamart.testutil.FakeCrud
 
 import scala.concurrent.{ExecutionContext, Future}
 
-class FakeProductOptionDao extends ProductOptionDao {
+class FakeProductOptionDao extends ProductOptionDao with FakeCrud[ProductOption] {
 
-  @volatile
-  private var records = Seq[ProductOption]()
+  override protected def withId(option: ProductOption, id: Long): ProductOption =
+    option.copy(id = id)
 
   @volatile
   private var products = Seq[OptionProduct]()
@@ -45,32 +46,4 @@ class FakeProductOptionDao extends ProductOptionDao {
       case None => 0
     }
   }
-
-  def find(optionId: Long)(implicit ec: ExecutionContext): Future[Option[ProductOption]] = Future {
-    records.find(_.id == optionId)
-  }
-
-  def create(option: ProductOption)(implicit ec: ExecutionContext): Future[ProductOption] = Future {
-    val created = option.copy(id = records.length+1)
-    records = records :+ created
-    created
-  }
-
-  def update(option: ProductOption)(implicit ec: ExecutionContext): Future[ProductOption] = Future {
-    val existing = require(option.id)
-    records = records.updated(records.indexOf(existing), option)
-    option
-  }
-
-  def delete(option: ProductOption)(implicit ec: ExecutionContext): Future[Int] = Future {
-    records.find(_.id == option.id) match {
-      case Some(_) =>
-        records = records.filterNot(_.id == option.id)
-        1
-      case None => 0
-    }
-  }
-
-  private def require(optionId: Long): ProductOption =
-    records.find(_.id == optionId).get
 }

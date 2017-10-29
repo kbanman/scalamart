@@ -3,13 +3,15 @@ package com.indilago.scalamart.product.price
 import java.time.{Clock, Instant}
 import java.util.Currency
 
+import com.indilago.scalamart.util.Crud
+
 import scala.concurrent.{ExecutionContext, Future}
 
 /**
   * Assumptions:
   * - ProductPrice cardinality must be unique for the product, currency
   */
-trait ProductPriceDao {
+trait ProductPriceDao extends Crud[ProductPrice, Long] {
 
   protected def clock: Clock
 
@@ -34,16 +36,6 @@ trait ProductPriceDao {
     * Retrieve all prices for a product, sorted by descending cardinality
     */
   def prices(productId: Long)(implicit ec: ExecutionContext): Future[Seq[ProductPrice]]
-
-  /**
-    * Create a new price record, returning the created record
-    */
-  def create(price: ProductPrice)(implicit ec: ExecutionContext): Future[ProductPrice]
-
-  /**
-    * Delete a price record, returning number of affected records
-    */
-  def delete(priceId: Long)(implicit ec: ExecutionContext): Future[Int]
 
   private def isActive(now: Instant)(price: ProductPrice): Boolean =
     price.start.forall(_.isBefore(now)) && price.end.forall(_.isAfter(now))

@@ -92,7 +92,7 @@ class DefaultOptionPriceService @Inject()(
     } yield created
 
   def delete(price: OptionPrice)(implicit ec: ExecutionContext): Future[Boolean] =
-    dao.delete(price.id).map { affected =>
+    dao.delete(price).map { affected =>
       if (affected > 0) {
         notifier.recordAction(ActionType.Delete, price)
         true

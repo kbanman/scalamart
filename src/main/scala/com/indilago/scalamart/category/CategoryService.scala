@@ -83,10 +83,10 @@ class DefaultCategoryService @Inject()(
     maybeFind(slug).map(_.getOrElse(throw EntityNotFound(classOf[Category], slug)))
 
   def maybeFind(id: Long)(implicit ec: ExecutionContext): Future[Option[Category]] =
-    dao.search(id)
+    dao.find(id)
 
   def maybeFind(slug: String)(implicit ec: ExecutionContext): Future[Option[Category]] =
-    dao.search(slug)
+    dao.find(slug)
 
   def update(category: Category)(implicit ec: ExecutionContext): Future[Category] =
     for {
@@ -105,7 +105,7 @@ class DefaultCategoryService @Inject()(
   }
 
   def delete(category: Category)(implicit ec: ExecutionContext): Future[Boolean] =
-    dao.delete(category.id).map { affected =>
+    dao.delete(category).map { affected =>
       if (affected > 0) {
         notifier.recordAction(ActionType.Delete, category)
         true
@@ -145,7 +145,7 @@ class DefaultCategoryService @Inject()(
   private def assertParentExists(category: Category)(implicit ec: ExecutionContext): Future[_] =
     category.parentCategoryId match {
       case Some(id) =>
-        dao.search(id).map(_.getOrElse(throw BadInput("Parent category does not exist")))
+        dao.find(id).map(_.getOrElse(throw BadInput(s"Parent category $id does not exist")))
       case None =>
         Future.successful({})
     }

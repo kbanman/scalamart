@@ -11,18 +11,17 @@ import com.indilago.scalamart.product.{FakeProductDao, ProductDao}
 import com.indilago.scalamart.product.price.{FakeProductPriceDao, ProductPriceDao, ProductPriceService}
 import com.indilago.scalamart.services.{ActionNotificationService, FakeNotificationService}
 import net.codingwell.scalaguice.ScalaModule
-import org.mockito.Mockito.spy
 
 trait InjectionHelpers { this: TestClock =>
 
-  val notifier: FakeNotificationService = spy(new FakeNotificationService)
-  val productDao: FakeProductDao = spy(new FakeProductDao(clock))
-  val productPriceDao: FakeProductPriceDao = spy(new FakeProductPriceDao(clock))
-  val productConfigDao: FakeProductConfigurationDao = spy(new FakeProductConfigurationDao(clock))
-  val optionPriceDao: FakeOptionPriceDao = spy(new FakeOptionPriceDao(clock))
-  val categoryDao: FakeCategoryDao = spy(new FakeCategoryDao)
-  val productOptionDao: FakeProductOptionDao = spy(new FakeProductOptionDao)
-  val productOptionItemDao: FakeProductOptionItemDao = spy(new FakeProductOptionItemDao)
+  val notifier: FakeNotificationService = new FakeNotificationService
+  val productDao: FakeProductDao = new FakeProductDao(clock)
+  val productPriceDao: FakeProductPriceDao = new FakeProductPriceDao(clock)
+  val productConfigDao: FakeProductConfigurationDao = new FakeProductConfigurationDao(clock)
+  val optionPriceDao: FakeOptionPriceDao = new FakeOptionPriceDao(clock)
+  val categoryDao: FakeCategoryDao = new FakeCategoryDao
+  val productOptionDao: FakeProductOptionDao = new FakeProductOptionDao
+  val productOptionItemDao: FakeProductOptionItemDao = new FakeProductOptionItemDao
 
   /**
     * Allow configuration at the test level

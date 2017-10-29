@@ -1,6 +1,7 @@
 package com.indilago.scalamart.category
 
 import com.indilago.scalamart.Identifiable
+import com.indilago.scalamart.util.Crud
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -13,12 +14,8 @@ case class CategoryProduct(
     categoryId -> productId
 }
 
-trait CategoryDao {
-  def search(id: Long)(implicit ec: ExecutionContext): Future[Option[Category]]
-  def search(slug: String)(implicit ec: ExecutionContext): Future[Option[Category]]
-  def update(category: Category)(implicit ec: ExecutionContext): Future[Category]
-  def delete(id: Long)(implicit ec: ExecutionContext): Future[Int]
-  def create(category: Category)(implicit ec: ExecutionContext): Future[Category]
+trait CategoryDao extends Crud[Category, Long] {
+  def find(slug: String)(implicit ec: ExecutionContext): Future[Option[Category]]
   def addProduct(categoryProduct: CategoryProduct)(implicit ec: ExecutionContext): Future[CategoryProduct]
   def removeProduct(productId: Long, categoryId: Long)(implicit ec: ExecutionContext): Future[Int]
   def updateProduct(categoryProduct: CategoryProduct)(implicit ec: ExecutionContext): Future[CategoryProduct]

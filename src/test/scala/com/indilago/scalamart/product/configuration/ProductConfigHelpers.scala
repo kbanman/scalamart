@@ -9,7 +9,8 @@ trait ProductConfigHelpers {
     ProductConfig(
       id = 0,
       productId = productId,
-      options = options
+      options = options,
+      attributes = Map.empty
     )
 
   implicit class ProductConfigHelpers(p: ProductConfig) {

@@ -7,4 +7,5 @@ case class ProductConfig(
   productId: Long,
   // Map[OptionId, Seq[(ItemId, quantity)]]
   options: Map[Long, Seq[(Long, Int)]],
+  attributes: Map[String, String],
 ) extends Identifiable

@@ -1,9 +1,17 @@
 package com.indilago.scalamart.product.option
 
+import com.indilago.scalamart.product.BaseProduct
 import com.indilago.scalamart.product.option.ProductOptionType._
 import com.indilago.scalamart.testutil.RandomHelpers
 
+import scala.concurrent.Future
+
+import scala.concurrent.ExecutionContext.Implicits.global
+
 trait OptionHelpers { this: RandomHelpers =>
+
+  def productOptionDao: FakeProductOptionDao
+  def productOptionItemDao: FakeProductOptionItemDao
 
   def makeOption(kind: ProductOptionType) =
     ProductOption(
@@ -15,6 +23,12 @@ trait OptionHelpers { this: RandomHelpers =>
 
   def makeOptionInput(o: ProductOption) =
     ProductOptionInput(o.name, o.kind, o.defaultItemId)
+
+  private def insertOptionF(product: BaseProduct, min: Int, max: Int): Future[ProductOption] =
+    for {
+      option <- productOptionDao.create(makeOption(ProductOptionType.Basic))
+      _ <- productOptionDao.addOptionProduct(OptionProduct(option.id, product.id, min, max))
+    } yield option
 
   def makeBasicItem(o: ProductOption) =
     BasicOptionItem(
@@ -40,6 +54,13 @@ trait OptionHelpers { this: RandomHelpers =>
       BasicOptionItemInput(optionId, name)
     case ProductOptionItem(id, optionId, productId) =>
       ProductOptionItemInput(optionId, productId)
+  }
+
+  implicit def item2Record: OptionItem => OptionItemRecord = {
+    case BasicOptionItem(id, optionId, name) =>
+      OptionItemRecord(id, optionId, Some(name), None)
+    case ProductOptionItem(id, optionId, productId) =>
+      OptionItemRecord(id, optionId, None, Some(productId))
   }
 
   implicit class OptionHelpers(p: ProductOption) {

@@ -1,12 +1,11 @@
 package com.indilago.scalamart.product.configuration
 
 import com.indilago.scalamart.BaseTestSuite
-import com.indilago.scalamart.exception.{EntityNotFound, ValidationFailed}
+import com.indilago.scalamart.exception.ValidationFailed
 import com.indilago.scalamart.product.option._
 import com.indilago.scalamart.product.{BaseProduct, ProductHelpers}
 import com.indilago.scalamart.services.ActionType
 import com.indilago.scalamart.testutil.InjectionHelpers
-import org.scalatest.BeforeAndAfterEach
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -41,7 +40,8 @@ class ProductConfigurationServiceSpec extends BaseTestSuite
     val config = ProductConfig(
       id = 0,
       productId = product.id,
-      options = Map(option.id -> Seq(item1.id -> 1, item2.id -> 1))
+      options = Map(option.id -> Seq(item1.id -> 1, item2.id -> 1)),
+      attributes = Map.empty
     )
     val created = sut.create(config).futureValue
     created shouldBe config.copy(id = created.id)
@@ -58,7 +58,8 @@ class ProductConfigurationServiceSpec extends BaseTestSuite
     val config = ProductConfig(
       id = 0,
       productId = product.id,
-      options = Map(option.id -> Seq(item1.id -> 1, item2.id -> 2))
+      options = Map(option.id -> Seq(item1.id -> 1, item2.id -> 2)),
+      attributes = Map.empty
     )
     sut.create(config).failed.futureValue shouldBe a[ValidationFailed]
     notifier.find(ActionType.Create, classOf[ProductConfig]).length shouldBe 0
@@ -145,6 +146,6 @@ class ProductConfigurationServiceSpec extends BaseTestSuite
     dao.create(c)
 
   private def insertConfig(product: BaseProduct, options: Map[Long, Seq[(Long, Int)]]): ProductConfig =
-    insertConfigF(ProductConfig(id = 0, productId = product.id, options = options)).futureValue
+    insertConfigF(ProductConfig(id = 0, product.id, options, Map.empty)).futureValue
 
 }

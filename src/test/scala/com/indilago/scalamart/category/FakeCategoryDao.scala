@@ -1,41 +1,20 @@
 package com.indilago.scalamart.category
 
+import com.indilago.scalamart.testutil.FakeCrud
+
 import scala.annotation.tailrec
 import scala.concurrent.{ExecutionContext, Future}
 
-class FakeCategoryDao extends CategoryDao {
+class FakeCategoryDao extends CategoryDao with FakeCrud[Category] {
 
-  @volatile
-  private var records = Seq[Category]()
+  override protected def withId(entity: Category, id: Long): Category =
+    entity.copy(id = id)
 
   @volatile
   private var products = Seq[CategoryProduct]()
 
-  override def create(category: Category)(implicit ec: ExecutionContext) = Future {
-    val record = category.copy(id = records.length + 1)
-    records = records :+ record
-    record
-  }
-
-  override def delete(id: Long)(implicit ec: ExecutionContext) = Future {
-    val affected = records.count(_.id == id)
-    records = records.filterNot(_.id == id)
-    affected
-  }
-
-  override def search(id: Long)(implicit ec: ExecutionContext) = Future {
-    records.find(_.id == id)
-  }
-
-  override def search(slug: String)(implicit ec: ExecutionContext) = Future {
+  override def find(slug: String)(implicit ec: ExecutionContext) = Future {
     records.find(_.slug == slug)
-  }
-
-  override def update(category: Category)(implicit ec: ExecutionContext) = Future {
-    val existing = records.find(_.id == category.id)
-      .getOrElse(throw new RuntimeException(s"Cannot update a nonexistent $category"))
-    records = records.updated(records.indexOf(existing), category)
-    category
   }
 
   def addProduct(cp: CategoryProduct)(implicit ec: ExecutionContext) = Future {
@@ -98,20 +77,18 @@ class FakeCategoryDao extends CategoryDao {
   def getCategories(productId: Long)(implicit ec: ExecutionContext) = Future {
     products.filter(_.productId == productId)
       .map(_.categoryId)
-      .map(find)
+      .map(require)
   }
 
   def getChildren(categoryId: Long, recursive: Boolean)(implicit ec: ExecutionContext) = Future {
     if (recursive)
       getChildrenRecursive(categoryId)
-        .map(find)
+        .map(require)
     else
       getChildren(categoryId)
-        .map(find)
+        .map(require)
   }
 
-  private def find(categoryId: Long): Category =
-    records.find(_.id == categoryId).get
 
   private def getChildren(categoryId: Long): Seq[Long] =
     records.filter(_.parentCategoryId.contains(categoryId)).map(_.id)

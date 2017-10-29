@@ -1,10 +1,5 @@
 package com.indilago.scalamart.product
 
-import scala.concurrent.{ExecutionContext, Future}
+import com.indilago.scalamart.util.Crud
 
-trait ProductDao {
-  def find(id: Long)(implicit ec: ExecutionContext): Future[Option[BaseProduct]]
-  def update(product: BaseProduct)(implicit ec: ExecutionContext): Future[BaseProduct]
-  def delete(id: Long)(implicit ec: ExecutionContext): Future[Int]
-  def create(product: BaseProduct)(implicit ec: ExecutionContext): Future[BaseProduct]
-}
+trait ProductDao extends Crud[BaseProduct, Long]

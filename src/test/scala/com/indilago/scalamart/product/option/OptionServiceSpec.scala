@@ -30,8 +30,6 @@ class OptionServiceSpec extends BaseTestSuite with BeforeAndAfterEach with Injec
 
     created.withoutId shouldEqual option
     notifier.find(Create, classOf[ProductOption]).length shouldBe 1
-
-    verify(dao).create(option)
   }
 
   it should "find an option" in {

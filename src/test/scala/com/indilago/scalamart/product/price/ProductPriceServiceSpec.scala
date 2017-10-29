@@ -14,6 +14,11 @@ class ProductPriceServiceSpec extends BaseTestSuite with InjectionHelpers with P
   val dao: FakeProductPriceDao = productPriceDao
   def sut: ProductPriceService = injector.getInstance(classOf[ProductPriceService])
 
+  override def beforeEach(): Unit = {
+    super.beforeEach()
+    notifier.reset()
+  }
+
   "ProductPriceService" should "insert a product price" in {
     val price = makePrice()
     val input = makePriceInput(price)
@@ -22,8 +27,6 @@ class ProductPriceServiceSpec extends BaseTestSuite with InjectionHelpers with P
 
     created.withoutId shouldEqual price
     notifier.find(ActionType.Create, classOf[ProductPrice]).length shouldBe 1
-
-    verify(dao).create(price)
   }
 
   it should "get the current price for a product" in {
@@ -41,7 +44,5 @@ class ProductPriceServiceSpec extends BaseTestSuite with InjectionHelpers with P
     sut.delete(price).futureValue shouldBe true
     sut.delete(price).futureValue shouldBe false
     notifier.find(ActionType.Delete, classOf[ProductPrice]).length shouldBe 1
-
-    verify(dao, times(2)).delete(price.id)
   }
 }

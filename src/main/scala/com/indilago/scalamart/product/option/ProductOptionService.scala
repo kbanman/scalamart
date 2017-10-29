@@ -114,7 +114,7 @@ class DefaultProductOptionService @Inject()(
       .map(_.map(r => toItem(option, r)))
 
   def findItem(option: ProductOption, itemId: Long)(implicit ec: ExecutionContext): Future[OptionItem] =
-    itemDao.search(itemId)
+    itemDao.find(itemId)
       .map(_.getOrElse(throw EntityNotFound(classOf[OptionItem], itemId)))
       .map(r => toItem(option, r))
 
@@ -124,7 +124,7 @@ class DefaultProductOptionService @Inject()(
       option = maybeOption.getOrElse(throw BadInput(NonExistentOption))
       item = toItem(input)
       _ = if (item.optionType != option.kind) throw BadInput(InvalidItemType)
-      createdRecord <- itemDao.create(item)
+      createdRecord <- itemDao.create(toItemRecord(item))
       createdItem = toItem(option, createdRecord)
       _ <- notifyItem(Create, createdItem)
     } yield createdItem
@@ -133,18 +133,18 @@ class DefaultProductOptionService @Inject()(
     for {
       maybeOption <- optionDao.find(item.optionId)
       option = maybeOption.getOrElse(throw BadInput(NonExistentOption))
-      maybeExisting <- itemDao.search(item.id)
+      maybeExisting <- itemDao.find(item.id)
       existing = maybeExisting.getOrElse(throw EntityNotFound(classOf[OptionItem], item.id))
       _ = if (item.optionId != existing.optionId) throw BadInput(CannotChangeItemOption)
       _ = if (item.optionType != option.kind) throw BadInput(InvalidItemType)
-      updatedRecord <- itemDao.update(item)
+      updatedRecord <- itemDao.update(toItemRecord(item))
       updatedItem = toItem(option, updatedRecord)
       _ <- notifyItem(Update, updatedItem)
     } yield updatedItem
 
   def deleteItem(item: OptionItem)(implicit ec: ExecutionContext): Future[Boolean] =
     for {
-      affected <- itemDao.delete(item)
+      affected <- itemDao.delete(toItemRecord(item))
       wasDeleted = affected > 0
       _ <- notifyItem(Delete, item, wasDeleted)
     } yield wasDeleted
@@ -179,6 +179,13 @@ class DefaultProductOptionService @Inject()(
       BasicOptionItem(0, optionId, name)
     case ProductOptionItemInput(optionId, productId) =>
       ProductOptionItem(0, optionId, productId)
+  }
+
+  private def toItemRecord: OptionItem => OptionItemRecord = {
+    case BasicOptionItem(id, optionId, name) =>
+      OptionItemRecord(id, optionId, Some(name), None)
+    case ProductOptionItem(id, optionId, productId) =>
+      OptionItemRecord(id, optionId, None, Some(productId))
   }
 
   private def toItem(o: ProductOption, r: OptionItemRecord): OptionItem =
