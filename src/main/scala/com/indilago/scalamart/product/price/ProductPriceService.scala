@@ -7,6 +7,7 @@ import javax.inject.{Inject, Singleton}
 import com.google.inject.ImplementedBy
 import com.indilago.scalamart.exception.{EntityNotFound, ValidationFailed}
 import com.indilago.scalamart.services._
+import com.indilago.scalamart.util.EventBusHelpers
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -74,9 +75,10 @@ object ProductPriceService {
 @Singleton
 class DefaultProductPriceService @Inject()(
   dao: ProductPriceDao,
-  notifier: ActionNotificationService,
+  protected val notifier: ActionNotificationService,
   protected val clock: Clock
-) extends ProductPriceService {
+) extends ProductPriceService with EventBusHelpers {
+
   import ProductPriceService.ErrorMessage._
 
   override def currentPrice(productId: Long, currency: Currency)(implicit ec: ExecutionContext): Future[ProductPrice] =
@@ -89,20 +91,25 @@ class DefaultProductPriceService @Inject()(
       _ = assertPositive(input)
       _ = assertUniqueCardinality(input, existing)
       created <- dao.create(priceFromInput(input, determineCardinality(input, existing)))
-      _ <- notifier.recordAction(ActionType.Create, classOf[ProductPrice], created.id)
+      _ <- notify(Create, created)
     } yield created
 
   def delete(price: ProductPrice)(implicit ec: ExecutionContext): Future[Boolean] =
-    dao.delete(price).map { affected =>
-      if (affected > 0) {
-        notifier.recordAction(ActionType.Delete, price)
-        true
-      } else false
-    }
+    for {
+      _ <- assertPriceIsDeletable(price)
+      affected <- dao.delete(price)
+      wasDeleted = affected > 0
+      _ <- notify(Delete, price, wasDeleted)
+    } yield wasDeleted
 
   private def assertPositive(input: ProductPriceInput): Unit =
     if (input.amount < 0)
       throw ProductPriceValidationError(input, NegativeAmount)
+
+  private def assertPriceIsDeletable(price: ProductPrice)(implicit ec: ExecutionContext): Future[_] = Future {
+    if (price.start.forall(_.isBefore(Instant.now(clock))))
+      throw new ValidationFailed("Cannot delete price that has gone into effect")
+  }
 
   private def assertUniqueCardinality(input: ProductPriceInput, existing: Seq[ProductPrice]): Unit =
     if (input.cardinality.nonEmpty && existing.exists(_.cardinality == input.cardinality.get))

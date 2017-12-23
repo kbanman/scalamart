@@ -33,7 +33,7 @@ class ProductServiceSpec extends BaseTestSuite with InjectionHelpers with Produc
   }
 
   it should "update a product" in {
-    val product = dao.create(makeProduct).futureValue
+    val product = makeProduct.insert()
     val updated = product.copy(name = "Changed")
 
     sut.update(updated).futureValue shouldBe updated
@@ -42,7 +42,7 @@ class ProductServiceSpec extends BaseTestSuite with InjectionHelpers with Produc
   }
 
   it should "delete a product" in {
-    val product = dao.create(makeProduct).futureValue
+    val product = makeProduct.insert()
 
     sut.delete(product).futureValue shouldBe true
     sut.delete(product).futureValue shouldBe false

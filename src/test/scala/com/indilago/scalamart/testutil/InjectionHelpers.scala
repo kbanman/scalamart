@@ -4,6 +4,7 @@ import java.time.Clock
 
 import com.google.inject.{AbstractModule, Guice, Injector}
 import com.indilago.scalamart.category.{CategoryDao, CategoryService, FakeCategoryDao}
+import com.indilago.scalamart.order.{FakeOrderDao, OrderDao}
 import com.indilago.scalamart.product.configuration.{FakeProductConfigurationDao, ProductConfigurationDao}
 import com.indilago.scalamart.product.option._
 import com.indilago.scalamart.product.option.price.{FakeOptionPriceDao, OptionPriceDao}
@@ -19,6 +20,7 @@ trait InjectionHelpers { this: TestClock =>
   val productPriceDao: FakeProductPriceDao = new FakeProductPriceDao(clock)
   val productConfigDao: FakeProductConfigurationDao = new FakeProductConfigurationDao(clock)
   val optionPriceDao: FakeOptionPriceDao = new FakeOptionPriceDao(clock)
+  val orderDao: FakeOrderDao = new FakeOrderDao(clock)
   val categoryDao: FakeCategoryDao = new FakeCategoryDao
   val productOptionDao: FakeProductOptionDao = new FakeProductOptionDao
   val productOptionItemDao: FakeProductOptionItemDao = new FakeProductOptionItemDao
@@ -34,6 +36,7 @@ trait InjectionHelpers { this: TestClock =>
     override def configure() = {
       bind[ProductPriceDao].toInstance(productPriceDao)
       bind[OptionPriceDao].toInstance(optionPriceDao)
+      bind[OrderDao].toInstance(orderDao)
       bind[ProductDao].toInstance(productDao)
       bind[CategoryDao].toInstance(categoryDao)
       bind[ProductOptionDao].toInstance(productOptionDao)

@@ -22,7 +22,7 @@ class ProductConfigurationServiceSpec extends BaseTestSuite
   }
 
   "ProductConfigurationService" should "create a configuration" in {
-    val product = insertProduct
+    val product = makeProduct.insert()
     val config = makeConfig(product.id)
 
     val created = sut.create(config).futureValue
@@ -32,8 +32,8 @@ class ProductConfigurationServiceSpec extends BaseTestSuite
   }
 
   it should "create a config with option items" in {
-    val product = insertProduct
-    val option = insertOption(product, min = 0, max = 2)
+    val product = makeProduct.insert()
+    val option = makeOption(product, min = 0, max = 2)
     val item1 = insertItem(option)
     val item2 = insertItem(option)
 
@@ -110,7 +110,7 @@ class ProductConfigurationServiceSpec extends BaseTestSuite
   }
 
   private def insertItem(option: ProductOption): OptionItemRecord =
-    productOptionItemDao.create(makeItem(option)).futureValue
+    productOptionItemDao.create(makeOptionItem(option)).futureValue
 
   private def insertOptionF(product: BaseProduct, min: Int, max: Int): Future[ProductOption] =
     for {
@@ -130,22 +130,10 @@ class ProductConfigurationServiceSpec extends BaseTestSuite
   private def insertProduct: BaseProduct =
     insertProductF.futureValue
 
-  private def insertConfigF: Future[ProductConfig] =
+  def insertConfigF: Future[ProductConfig] =
     for {
       product <- insertProductF
       config <- insertConfigF(makeConfig(product.id))
     } yield config
-
-  private def insertConfig: ProductConfig =
-    insertConfigF.futureValue
-
-  private def insertConfig(product: BaseProduct): ProductConfig =
-    insertConfigF(makeConfig(product.id)).futureValue
-
-  private def insertConfigF(c: ProductConfig): Future[ProductConfig] =
-    dao.create(c)
-
-  private def insertConfig(product: BaseProduct, options: Map[Long, Seq[(Long, Int)]]): ProductConfig =
-    insertConfigF(ProductConfig(id = 0, product.id, options, Map.empty)).futureValue
 
 }

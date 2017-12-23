@@ -3,12 +3,12 @@ package com.indilago.scalamart.product.option
 import javax.inject.{Inject, Singleton}
 
 import com.google.inject.ImplementedBy
-import com.indilago.scalamart.Identifiable
 import com.indilago.scalamart.exception.{BadInput, EntityNotFound, PreconditionFailed}
 import com.indilago.scalamart.product.BaseProduct
 import com.indilago.scalamart.product.option.ProductOptionType.{Basic, Product}
 import com.indilago.scalamart.services.ActionNotificationService
-import com.indilago.scalamart.services.ActionType._
+import com.indilago.scalamart.services.ActionType.ActionType
+import com.indilago.scalamart.util.EventBusHelpers
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -46,8 +46,9 @@ object ProductOptionService {
 class DefaultProductOptionService @Inject()(
   optionDao: ProductOptionDao,
   itemDao: ProductOptionItemDao,
-  notifier: ActionNotificationService
-) extends ProductOptionService {
+  protected val notifier: ActionNotificationService
+) extends ProductOptionService with EventBusHelpers {
+
   import ProductOptionService.ErrorMessage._
 
   def getOptions(product: BaseProduct)(implicit ec: ExecutionContext): Future[Seq[ProductOption]] =
@@ -196,12 +197,7 @@ class DefaultProductOptionService @Inject()(
         ProductOptionItem(r.id, r.optionId, r.productId.get)
     }
 
-  private def notify[T <: Identifiable](action: ActionType, entity: T, shouldNotify: Boolean = true)(implicit ec: ExecutionContext): Future[_] =
-    if (shouldNotify)
-      notifier.recordAction(action, entity)
-    else
-      Future.successful({})
-
+  // @todo check if this is still needed
   private def notifyItem(action: ActionType, item: OptionItem, shouldNotify: Boolean = true)(implicit ec: ExecutionContext): Future[_] =
     if (shouldNotify)
       notifier.recordAction(action, classOf[OptionItem], item.id)
